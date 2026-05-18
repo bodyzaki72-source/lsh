@@ -23,21 +23,72 @@
 int lsh_cd(char **args);
 int lsh_help(char **args);
 int lsh_exit(char **args);
-
+int lsh_pwd(char **args);
+int lsh_echo(char **args);
+int lsh_history(char **args);
+int lsh_env(char **args);
 /*
   List of builtin commands, followed by their corresponding functions.
  */
+#define max_history 55
+char *historyl[max_history];
+int hcount=0;
+
+
 char *builtin_str[] = {
   "cd",
   "help",
-  "exit"
+  "exit",
+  "pwd",
+  "echo",
+  "history",
+  "env"
 };
+
 
 int (*builtin_func[]) (char **) = {
   &lsh_cd,
   &lsh_help,
-  &lsh_exit
+  &lsh_exit,
+  &lsh_pwd,
+  &lsh_echo,
+  &lsh_history,
+  &lsh_env
 };
+
+int lsh_pwd(char **args){
+	char cwd[2048];
+	if( getcwd(cwd,sizeof(cwd)) != NULL){
+		printf("%s\n", cwd);
+	}
+	else perorr("pwd error\n");
+	return 1;
+}
+
+int lsh_echo(char **args){
+	int i=1;
+	while(args[i]!=0){
+      printf("%s ", args[i]);
+	  i++;	
+	}
+	printf("\n");
+	return 1;
+}
+
+extern char **environ;
+int lsh_env(char **args){
+	for (char **env = environ; *env != 0; env++) {
+    printf("%s\n", *env);
+  }
+	return 1;
+}
+
+int lsh_history(char **args) {
+  for (int i = 0; i < history_count; i++) {
+    printf("%d: %s\n", i + 1, history_list[i]);
+  }
+  return 1;
+}
 
 int lsh_num_builtins() {
   return sizeof(builtin_str) / sizeof(char *);
@@ -256,6 +307,14 @@ void lsh_loop(void)
   do {
     printf("> ");
     line = lsh_read_line();
+
+	if (line[0] != '\0' && line[0] != '\n') {
+        if (history_count < MAX_HISTORY) {
+            history_list[history_count] = strdup(line); 
+            history_count++;
+        }
+    }
+	  
     args = lsh_split_line(line);
     status = lsh_execute(args);
 
